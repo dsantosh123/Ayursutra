@@ -46,9 +46,13 @@ export default function LandingPage() {
               <a href="#services" className="text-green-700 hover:text-green-800 transition-colors font-medium">
                 Services
               </a>
-              <a href="#about" className="text-green-700 hover:text-green-800 transition-colors font-medium">
-                About
-              </a>
+              <Button
+                variant="ghost"
+                className="text-green-700 hover:text-green-800 transition-colors font-medium p-0 h-auto hover:bg-transparent"
+                onClick={() => router.push("/about")}
+              >
+                About Ayurveda
+              </Button>
               <a href="#testimonials" className="text-green-700 hover:text-green-800 transition-colors font-medium">
                 Testimonials
               </a>
@@ -137,7 +141,7 @@ export default function LandingPage() {
               variant="outline"
               size="lg"
               className="text-lg px-10 py-4 bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800 shadow-lg hover:shadow-xl transition-all duration-300 rounded-full"
-              onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => router.push("/about")}
             >
               Learn More About Ayurveda
             </Button>

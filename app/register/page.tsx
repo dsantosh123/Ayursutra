@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, ArrowRight, User, Heart, Brain, Leaf, Home, CheckCircle, Copy } from "lucide-react"
+import { ArrowLeft, ArrowRight, User, Heart, Brain, Leaf, Home, CheckCircle, Copy, MapPin, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import React from "react"
@@ -35,6 +35,7 @@ interface PatientData {
   // Ayurvedic Assessment
   constitution: string
   primaryConcerns: string[]
+  customConcern: string
   stressLevel: number
   sleepQuality: number
   digestiveHealth: number
@@ -45,6 +46,9 @@ interface PatientData {
   exerciseFrequency: string
   smokingStatus: string
   alcoholConsumption: string
+
+  location: string
+  useCurrentLocation: boolean
 }
 
 const steps = [
@@ -52,6 +56,7 @@ const steps = [
   { id: 2, title: "Health Assessment", icon: Heart },
   { id: 3, title: "Ayurvedic Profile", icon: Leaf },
   { id: 4, title: "Registration Complete", icon: CheckCircle },
+  { id: 5, title: "Find Nearby Clinics", icon: MapPin },
 ]
 
 export default function PatientRegistration() {
@@ -60,6 +65,11 @@ export default function PatientRegistration() {
   const [isLoading, setIsLoading] = useState(false)
   const [generatedPatientId, setGeneratedPatientId] = useState("")
   const [registrationComplete, setRegistrationComplete] = useState(false)
+  const [locationStep, setLocationStep] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [showCustomConcern, setShowCustomConcern] = useState(false)
+  const [suggestedClinics, setSuggestedClinics] = useState<any[]>([])
+
   const [patientData, setPatientData] = useState<PatientData>({
     firstName: "",
     lastName: "",
@@ -75,6 +85,7 @@ export default function PatientRegistration() {
     medicalHistory: "",
     constitution: "",
     primaryConcerns: [],
+    customConcern: "",
     stressLevel: 5,
     sleepQuality: 5,
     digestiveHealth: 5,
@@ -83,10 +94,69 @@ export default function PatientRegistration() {
     exerciseFrequency: "",
     smokingStatus: "",
     alcoholConsumption: "",
+    location: "",
+    useCurrentLocation: false,
   })
 
   const updatePatientData = (field: keyof PatientData, value: any) => {
     setPatientData((prev) => ({ ...prev, [field]: value }))
+    if (validationErrors.length > 0) {
+      setValidationErrors([])
+    }
+  }
+
+  const validateCurrentStep = (): boolean => {
+    const errors: string[] = []
+
+    if (currentStep === 1) {
+      if (!patientData.firstName.trim()) errors.push("First name is required")
+      if (!patientData.lastName.trim()) errors.push("Last name is required")
+      if (!patientData.email.trim()) errors.push("Email address is required")
+      if (!patientData.phone.trim()) errors.push("Phone number is required")
+      if (!patientData.dateOfBirth) errors.push("Date of birth is required")
+      if (!patientData.gender) errors.push("Gender is required")
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (patientData.email && !emailRegex.test(patientData.email)) {
+        errors.push("Please enter a valid email address")
+      }
+    }
+
+    if (currentStep === 3) {
+      if (patientData.primaryConcerns.length === 0 && !patientData.customConcern.trim()) {
+        errors.push("Please select at least one primary health concern or add a custom concern")
+      }
+    }
+
+    if (currentStep === 5) {
+      if (!patientData.location.trim()) {
+        errors.push("Location is required to suggest nearby clinics")
+      }
+    }
+
+    setValidationErrors(errors)
+    return errors.length === 0
+  }
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords
+          updatePatientData("location", `${latitude}, ${longitude}`)
+          updatePatientData("useCurrentLocation", true)
+          // Here you would typically call a reverse geocoding service
+          // For now, we'll just show coordinates
+        },
+        (error) => {
+          console.error("Error getting location:", error)
+          alert("Unable to get your current location. Please enter it manually.")
+        },
+      )
+    } else {
+      alert("Geolocation is not supported by this browser.")
+    }
   }
 
   const handleConcernToggle = (concern: string) => {
@@ -101,33 +171,65 @@ export default function PatientRegistration() {
     }
   }
 
+  const addCustomConcern = () => {
+    if (patientData.customConcern.trim()) {
+      const newConcerns = [...patientData.primaryConcerns, patientData.customConcern.trim()]
+      updatePatientData("primaryConcerns", newConcerns)
+      updatePatientData("customConcern", "")
+      setShowCustomConcern(false)
+    }
+  }
+
   const nextStep = () => {
+    if (!validateCurrentStep()) {
+      return
+    }
+
     if (currentStep < 4) {
       setCurrentStep(currentStep + 1)
+    } else if (currentStep === 4 && registrationComplete && !locationStep) {
+      setCurrentStep(5)
+      setLocationStep(true)
     }
   }
 
   const prevStep = () => {
-    if (currentStep > 1) {
+    if (currentStep === 5) {
+      setCurrentStep(4)
+      setLocationStep(false)
+    } else if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
     }
+    setValidationErrors([]) // Clear errors when going back
+  }
+
+  const generatePatientId = (): string => {
+    const year = new Date().getFullYear()
+    const randomNum = Math.floor(Math.random() * 900) + 100 // 3-digit number between 100-999
+    return `AYU-${year}-${randomNum}`
   }
 
   const generateRecommendations = async () => {
+    if (!validateCurrentStep()) {
+      return
+    }
+
     setIsLoading(true)
 
     try {
+      const patientId = generatePatientId()
+
       // Register patient and generate unique ID
       const response = await fetch("/api/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patientData),
+        body: JSON.stringify({ ...patientData, patientId }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        setGeneratedPatientId(data.patientId)
+        setGeneratedPatientId(patientId)
         setRegistrationComplete(true)
         setIsLoading(false)
       } else {
@@ -148,7 +250,57 @@ export default function PatientRegistration() {
     router.push("/login")
   }
 
-  const progress = (currentStep / 4) * 100
+  const searchNearbyClinics = async () => {
+    if (!validateCurrentStep()) {
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Mock clinic data - in real app, this would be an API call
+      const mockClinics = [
+        {
+          id: 1,
+          name: "AyurVeda Wellness Center",
+          address: "123 Health Street, " + patientData.location,
+          distance: "2.5 km",
+          rating: 4.8,
+          specialties: ["Panchakarma", "Herbal Medicine", "Yoga Therapy"],
+          doctors: ["Dr. Priya Sharma", "Dr. Rajesh Kumar"],
+        },
+        {
+          id: 2,
+          name: "Holistic Ayurveda Clinic",
+          address: "456 Wellness Avenue, " + patientData.location,
+          distance: "3.2 km",
+          rating: 4.6,
+          specialties: ["Pulse Diagnosis", "Detox Therapy", "Meditation"],
+          doctors: ["Dr. Meera Patel", "Dr. Arjun Singh"],
+        },
+        {
+          id: 3,
+          name: "Traditional Ayurveda Hospital",
+          address: "789 Ancient Way, " + patientData.location,
+          distance: "4.1 km",
+          rating: 4.9,
+          specialties: ["Chronic Diseases", "Women's Health", "Pediatric Care"],
+          doctors: ["Dr. Sunita Gupta", "Dr. Vikram Joshi"],
+        },
+      ]
+
+      // Simulate API delay
+      setTimeout(() => {
+        setSuggestedClinics(mockClinics)
+        setIsLoading(false)
+      }, 2000)
+    } catch (error) {
+      console.error("Error fetching clinics:", error)
+      setIsLoading(false)
+    }
+  }
+
+  const progress = locationStep ? 100 : (currentStep / 4) * 80
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-amber-50 to-orange-50 py-8 px-4">
@@ -186,8 +338,9 @@ export default function PatientRegistration() {
         >
           <Progress value={progress} className="h-3 mb-6 bg-green-100" />
           <div className="flex justify-between">
-            {steps.map((step, index) => {
+            {steps.slice(0, locationStep ? 5 : 4).map((step, index) => {
               const Icon = step.icon
+              const isActive = locationStep ? currentStep === step.id : currentStep >= step.id
               return (
                 <motion.div
                   key={step.id}
@@ -198,16 +351,14 @@ export default function PatientRegistration() {
                 >
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all duration-300 ${
-                      currentStep >= step.id
+                      isActive
                         ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg"
                         : "bg-white border-2 border-green-200 text-green-600"
                     }`}
                   >
                     <Icon className="h-6 w-6" />
                   </div>
-                  <span
-                    className={`text-sm font-medium ${currentStep >= step.id ? "text-green-900" : "text-green-600"}`}
-                  >
+                  <span className={`text-sm font-medium ${isActive ? "text-green-900" : "text-green-600"}`}>
                     {step.title}
                   </span>
                 </motion.div>
@@ -215,6 +366,21 @@ export default function PatientRegistration() {
             })}
           </div>
         </motion.div>
+
+        {validationErrors.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
+          >
+            <h4 className="text-red-800 font-medium mb-2">Please fix the following errors:</h4>
+            <ul className="text-red-700 text-sm space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index}>• {error}</li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -224,8 +390,10 @@ export default function PatientRegistration() {
           <Card className="border-green-200 shadow-2xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-green-50 to-amber-50 border-b border-green-100">
               <CardTitle className="text-2xl text-green-900 flex items-center gap-3">
-                {React.createElement(steps[currentStep - 1].icon, { className: "h-6 w-6 text-green-600" })}
-                {steps[currentStep - 1].title}
+                {React.createElement(steps[locationStep && currentStep === 5 ? 4 : currentStep - 1].icon, {
+                  className: "h-6 w-6 text-green-600",
+                })}
+                {locationStep && currentStep === 5 ? steps[4].title : steps[currentStep - 1].title}
               </CardTitle>
               <CardDescription className="text-green-700 text-base">
                 {currentStep === 1 && "Please provide your basic information to get started"}
@@ -234,6 +402,7 @@ export default function PatientRegistration() {
                 {currentStep === 4 && registrationComplete
                   ? "Your registration is complete!"
                   : "Processing your registration..."}
+                {currentStep === 5 && "Enter your location to find nearby Ayurvedic clinics"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-8">
@@ -412,7 +581,8 @@ export default function PatientRegistration() {
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <div className="space-y-4">
-                    <Label>Primary Health Concerns</Label>
+                    <Label className="text-green-800 font-medium text-lg">Primary Health Concerns *</Label>
+                    <p className="text-sm text-green-600">Select at least one concern that applies to you</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {[
                         "Stress & Anxiety",
@@ -437,6 +607,60 @@ export default function PatientRegistration() {
                         </div>
                       ))}
                     </div>
+
+                    <div className="space-y-3 pt-4 border-t border-green-100">
+                      {!showCustomConcern ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowCustomConcern(true)}
+                          className="flex items-center gap-2 border-green-600 text-green-700 hover:bg-green-50"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add Custom Health Concern
+                        </Button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Input
+                            value={patientData.customConcern}
+                            onChange={(e) => updatePatientData("customConcern", e.target.value)}
+                            placeholder="Enter your specific health concern"
+                            className="border-green-200 focus:border-green-500 focus:ring-green-500"
+                          />
+                          <Button
+                            type="button"
+                            onClick={addCustomConcern}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            Add
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setShowCustomConcern(false)
+                              updatePatientData("customConcern", "")
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Display selected concerns */}
+                    {patientData.primaryConcerns.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm text-green-700">Selected Concerns:</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {patientData.primaryConcerns.map((concern, index) => (
+                            <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                              {concern}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -609,29 +833,11 @@ export default function PatientRegistration() {
                       <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 max-w-lg mx-auto">
                         <h5 className="font-semibold text-blue-900 mb-2">Next Steps:</h5>
                         <ul className="text-sm text-blue-800 space-y-1 text-left">
-                          <li>• Use your Patient ID and password to log in</li>
-                          <li>• Complete your health assessment</li>
-                          <li>• Get AI-powered treatment recommendations</li>
-                          <li>• Book appointments with our expert doctors</li>
+                          <li>• Provide your location to find nearby clinics</li>
+                          <li>• Get personalized clinic recommendations</li>
+                          <li>• Book appointments with expert Ayurvedic doctors</li>
+                          <li>• Access your health dashboard anytime</li>
                         </ul>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button
-                          onClick={goToLogin}
-                          size="lg"
-                          className="text-lg px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-full"
-                        >
-                          🚀 Login to Your Account
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => router.push("/recommendations")}
-                          size="lg"
-                          className="text-lg px-8 py-4 border-green-600 text-green-700 hover:bg-green-50 rounded-full"
-                        >
-                          🌿 View Recommendations
-                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -662,6 +868,125 @@ export default function PatientRegistration() {
                 </motion.div>
               )}
 
+              {currentStep === 5 && (
+                <motion.div
+                  className="space-y-8"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className="text-center space-y-4">
+                    <MapPin className="h-16 w-16 text-green-600 mx-auto" />
+                    <h3 className="text-2xl font-bold text-green-900">Find Nearby Ayurvedic Clinics</h3>
+                    <p className="text-green-700 max-w-lg mx-auto">
+                      Enter your location to discover the best Ayurvedic clinics and doctors in your area
+                    </p>
+                  </div>
+
+                  <div className="max-w-md mx-auto space-y-6">
+                    <div className="space-y-4">
+                      <Label htmlFor="location" className="text-green-800 font-medium text-lg">
+                        Your Location *
+                      </Label>
+                      <div className="flex gap-3">
+                        <Input
+                          id="location"
+                          value={patientData.location}
+                          onChange={(e) => updatePatientData("location", e.target.value)}
+                          placeholder="Enter your city, area, or full address"
+                          className="border-green-200 focus:border-green-500 focus:ring-green-500 text-lg p-4"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={getCurrentLocation}
+                          className="flex items-center gap-2 border-green-600 text-green-700 hover:bg-green-50 bg-transparent px-4"
+                        >
+                          <MapPin className="h-4 w-4" />
+                          Auto-detect
+                        </Button>
+                      </div>
+                      <p className="text-sm text-green-600">
+                        💡 We'll use this to suggest the most convenient clinics for you
+                      </p>
+                    </div>
+
+                    {patientData.location && !isLoading && suggestedClinics.length === 0 && (
+                      <Button
+                        onClick={searchNearbyClinics}
+                        size="lg"
+                        className="w-full text-lg py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                      >
+                        🔍 Find Nearby Clinics
+                      </Button>
+                    )}
+
+                    {isLoading && (
+                      <div className="text-center space-y-4">
+                        <motion.div
+                          className="animate-spin rounded-full h-12 w-12 border-4 border-green-200 border-t-green-600 mx-auto"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                        />
+                        <p className="text-green-700">Searching for nearby clinics...</p>
+                      </div>
+                    )}
+
+                    {suggestedClinics.length > 0 && (
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-green-900 text-center">
+                          🏥 Recommended Clinics Near You
+                        </h4>
+                        <div className="space-y-3">
+                          {suggestedClinics.map((clinic) => (
+                            <div key={clinic.id} className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                              <div className="flex justify-between items-start mb-2">
+                                <h5 className="font-semibold text-green-900">{clinic.name}</h5>
+                                <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
+                                  ⭐ {clinic.rating}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{clinic.address}</p>
+                              <p className="text-sm text-green-700 mb-2">📍 {clinic.distance} away</p>
+                              <div className="text-xs text-gray-500">
+                                <p>
+                                  <strong>Specialties:</strong> {clinic.specialties.join(", ")}
+                                </p>
+                                <p>
+                                  <strong>Doctors:</strong> {clinic.doctors.join(", ")}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="text-center space-y-4 pt-4">
+                          <p className="text-green-700">Great! You can now book appointments with these clinics.</p>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <Button
+                              onClick={goToLogin}
+                              size="lg"
+                              className="text-lg px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                              🚀 Login to Book Appointment
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => router.push("/recommendations")}
+                              size="lg"
+                              className="text-lg px-6 py-3 border-green-600 text-green-700 hover:bg-green-50"
+                            >
+                              🌿 View Health Recommendations
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
               <div className="flex justify-between pt-8 border-t border-green-100">
                 <Button
                   variant="outline"
@@ -679,6 +1004,16 @@ export default function PatientRegistration() {
                     className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     Next Step
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                )}
+
+                {currentStep === 4 && registrationComplete && !locationStep && (
+                  <Button
+                    onClick={nextStep}
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Find Nearby Clinics
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 )}
