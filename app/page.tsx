@@ -7,9 +7,51 @@ import { Users, Calendar, Shield, Leaf, Heart, Brain, Star, ArrowRight, Phone, M
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Image from "next/image"
+import { useEffect, useState } from "react"
 
 export default function LandingPage() {
   const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem("authToken")
+      const authStatus = !!token
+      console.log("[v0] Auth check - token exists:", !!token)
+      console.log("[v0] Setting isAuthenticated to:", authStatus)
+      setIsAuthenticated(authStatus)
+    }
+
+    checkAuth()
+  }, [])
+
+  const handleAuthenticatedAction = () => {
+    console.log("[v0] Button clicked - isAuthenticated:", isAuthenticated)
+
+    if (isAuthenticated === null) {
+      console.log("[v0] Auth state not determined yet, checking now...")
+      const token = localStorage.getItem("authToken")
+      const authStatus = !!token
+      console.log("[v0] Direct auth check - token exists:", !!token)
+
+      if (authStatus) {
+        console.log("[v0] User is authenticated, redirecting to register")
+        router.push("/register")
+      } else {
+        console.log("[v0] User is not authenticated, redirecting to login")
+        router.push("/login")
+      }
+      return
+    }
+
+    if (isAuthenticated) {
+      console.log("[v0] User is authenticated, redirecting to register")
+      router.push("/register")
+    } else {
+      console.log("[v0] User is not authenticated, redirecting to login")
+      router.push("/login")
+    }
+  }
 
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -70,7 +112,7 @@ export default function LandingPage() {
               <Button
                 size="sm"
                 className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                onClick={() => router.push("/register")}
+                onClick={handleAuthenticatedAction}
               >
                 🌿 Get Started
               </Button>
@@ -132,7 +174,7 @@ export default function LandingPage() {
             <Button
               size="lg"
               className="text-lg px-10 py-4 bg-green-600 hover:bg-green-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 rounded-full border-0"
-              onClick={() => router.push("/register")}
+              onClick={handleAuthenticatedAction}
             >
               🌿 Start My Healing Journey
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -303,7 +345,7 @@ export default function LandingPage() {
                   </CardDescription>
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-2xl font-bold text-green-600">₹15,000</span>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => router.push("/register")}>
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleAuthenticatedAction}>
                       Book Now
                     </Button>
                   </div>
@@ -333,7 +375,7 @@ export default function LandingPage() {
                   </CardDescription>
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-2xl font-bold text-green-600">₹25,000</span>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => router.push("/register")}>
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleAuthenticatedAction}>
                       Book Now
                     </Button>
                   </div>
@@ -363,7 +405,7 @@ export default function LandingPage() {
                   </CardDescription>
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-2xl font-bold text-green-600">₹75,000</span>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => router.push("/register")}>
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleAuthenticatedAction}>
                       Book Now
                     </Button>
                   </div>
@@ -568,7 +610,7 @@ export default function LandingPage() {
             <Button
               size="lg"
               className="text-xl px-12 py-6 bg-green-600 hover:bg-green-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 rounded-full border-0"
-              onClick={() => router.push("/register")}
+              onClick={handleAuthenticatedAction}
             >
               🌿 Book Your Consultation Now
               <ArrowRight className="ml-3 h-6 w-6" />
@@ -632,7 +674,7 @@ export default function LandingPage() {
                   <Button
                     variant="ghost"
                     className="p-0 h-auto text-green-200 hover:text-white hover:bg-transparent"
-                    onClick={() => router.push("/register")}
+                    onClick={handleAuthenticatedAction}
                   >
                     🌿 Book Appointment
                   </Button>
