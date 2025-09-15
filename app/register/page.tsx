@@ -69,6 +69,7 @@ export default function PatientRegistration() {
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [showCustomConcern, setShowCustomConcern] = useState(false)
   const [suggestedClinics, setSuggestedClinics] = useState<any[]>([])
+  const [locationError, setLocationError] = useState<string | null>(null)
 
   const [patientData, setPatientData] = useState<PatientData>({
     firstName: "",
@@ -139,24 +140,62 @@ export default function PatientRegistration() {
     return errors.length === 0
   }
 
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords
-          updatePatientData("location", `${latitude}, ${longitude}`)
-          updatePatientData("useCurrentLocation", true)
-          // Here you would typically call a reverse geocoding service
-          // For now, we'll just show coordinates
-        },
-        (error) => {
-          console.error("Error getting location:", error)
-          alert("Unable to get your current location. Please enter it manually.")
-        },
+  const reverseGeocode = async (latitude: number, longitude: number): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+        { headers: { "Accept": "application/json" } },
       )
-    } else {
-      alert("Geolocation is not supported by this browser.")
+      if (!response.ok) return null
+      const data = await response.json()
+      const address = data?.address || {}
+      const parts = [address.suburb, address.city || address.town || address.village, address.state, address.country]
+        .filter(Boolean)
+        .join(", ")
+      return parts || data?.display_name || null
+    } catch (e) {
+      console.error("Reverse geocoding failed", e)
+      return null
     }
+  }
+
+  const getCurrentLocation = () => {
+    setLocationError(null)
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser. Please enter your location manually.")
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords
+          const humanReadable = await reverseGeocode(latitude, longitude)
+          if (humanReadable) {
+            updatePatientData("location", humanReadable)
+            updatePatientData("useCurrentLocation", true)
+            // Trigger clinic search automatically after auto-detect
+            searchNearbyClinics()
+          } else {
+            updatePatientData("location", `${latitude}, ${longitude}`)
+            updatePatientData("useCurrentLocation", true)
+            setLocationError("Could not determine your city from GPS. Using coordinates. You can edit the location above.")
+            searchNearbyClinics()
+          }
+        } catch (e) {
+          console.error("Auto-detect handling failed", e)
+          setLocationError("Auto-detect failed. Please type your city or address manually.")
+        }
+      },
+      (error) => {
+        console.error("Error getting location:", error)
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Location permission was denied. Please enter your location manually.")
+        } else {
+          setLocationError("Unable to get your current location. Please enter it manually.")
+        }
+      },
+    )
   }
 
   const handleConcernToggle = (concern: string) => {
@@ -256,6 +295,7 @@ export default function PatientRegistration() {
     }
 
     setIsLoading(true)
+    setLocationError(null)
 
     try {
       // Mock clinic data - in real app, this would be an API call
@@ -297,6 +337,7 @@ export default function PatientRegistration() {
     } catch (error) {
       console.error("Error fetching clinics:", error)
       setIsLoading(false)
+      setLocationError("We couldn't fetch clinics right now. Please try again in a moment.")
     }
   }
 
@@ -350,11 +391,10 @@ export default function PatientRegistration() {
                   transition={{ duration: 0.5, delay: 0.1 * index }}
                 >
                   <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all duration-300 ${
-                      isActive
-                        ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg"
-                        : "bg-white border-2 border-green-200 text-green-600"
-                    }`}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all duration-300 ${isActive
+                      ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg"
+                      : "bg-white border-2 border-green-200 text-green-600"
+                      }`}
                   >
                     <Icon className="h-6 w-6" />
                   </div>
@@ -829,7 +869,6 @@ export default function PatientRegistration() {
                           💡 Save this ID - you'll need it to log in to your account
                         </p>
                       </div>
-
                       <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 max-w-lg mx-auto">
                         <h5 className="font-semibold text-blue-900 mb-2">Next Steps:</h5>
                         <ul className="text-sm text-blue-800 space-y-1 text-left">
@@ -888,7 +927,13 @@ export default function PatientRegistration() {
                       <Label htmlFor="location" className="text-green-800 font-medium text-lg">
                         Your Location *
                       </Label>
-                      <div className="flex gap-3">
+                      <form
+                        className="flex gap-3"
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          searchNearbyClinics()
+                        }}
+                      >
                         <Input
                           id="location"
                           value={patientData.location}
@@ -906,7 +951,10 @@ export default function PatientRegistration() {
                           <MapPin className="h-4 w-4" />
                           Auto-detect
                         </Button>
-                      </div>
+                      </form>
+                      {locationError && (
+                        <p className="text-sm text-red-600">{locationError}</p>
+                      )}
                       <p className="text-sm text-green-600">
                         💡 We'll use this to suggest the most convenient clinics for you
                       </p>
@@ -963,22 +1011,25 @@ export default function PatientRegistration() {
 
                         <div className="text-center space-y-4 pt-4">
                           <p className="text-green-700">Great! You can now book appointments with these clinics.</p>
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <Button
-                              onClick={goToLogin}
-                              size="lg"
-                              className="text-lg px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                            >
-                              🚀 Login to Book Appointment
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => router.push("/recommendations")}
-                              size="lg"
-                              className="text-lg px-6 py-3 border-green-600 text-green-700 hover:bg-green-50"
-                            >
-                              🌿 View Health Recommendations
-                            </Button>
+                          <div className="max-w-xl mx-auto w-full bg-white rounded-2xl shadow-md p-6">
+                            <div className="flex flex-col gap-4">
+                              <Button
+                                onClick={goToLogin}
+                                size="lg"
+                                className="w-full text-lg py-3 bg-gradient-to-r from-green-600 to-green-700 
+                 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                              >
+                                🚀 Login to Book Appointment
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => router.push("/recommendations")}
+                                size="lg"
+                                className="w-full text-lg py-3 border-green-600 text-green-700 hover:bg-green-50"
+                              >
+                                🌿 View Health Recommendation
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
