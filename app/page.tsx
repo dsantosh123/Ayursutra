@@ -658,18 +658,32 @@ export default function LandingPage() {
             <div>
               <h3 className="font-semibold mb-6 text-green-300 text-lg">Company</h3>
               <ul className="space-y-3 text-green-200">
-                <li className="hover:text-white transition-colors cursor-pointer">About Us</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Our Practitioners</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Treatment Centers</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Contact Us</li>
+                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/about")}>
+                  About Us
+                </li>
+                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/practitioners")}>
+                  Our Practitioners
+                </li>
+                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/centers")}>
+                  Treatment Centers
+                </li>
+                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/contact")}>
+                  Contact Us
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-6 text-green-300 text-lg">Support</h3>
               <ul className="space-y-3 text-green-200">
-                <li className="hover:text-white transition-colors cursor-pointer">Help Center</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Privacy Policy</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Terms of Service</li>
+                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/help")}>
+                  Help Center
+                </li>
+                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/privacy")}>
+                  Privacy Policy
+                </li>
+                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/terms")}>
+                  Terms of Service
+                </li>
                 <li className="hover:text-white transition-colors cursor-pointer">
                   <Button
                     variant="ghost"
