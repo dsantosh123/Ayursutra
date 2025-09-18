@@ -3,7 +3,21 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, Calendar, Shield, Leaf, Heart, Brain, Star, ArrowRight, Phone, Mail, MapPin } from "lucide-react"
+import {
+  Users,
+  Calendar,
+  Shield,
+  Leaf,
+  Heart,
+  Brain,
+  Star,
+  ArrowRight,
+  Phone,
+  Mail,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useEffect, useState } from "react"
@@ -14,7 +28,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const checkAuth = () => {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         const token = localStorage.getItem("authToken")
         setIsAuthenticated(!!token)
       }
@@ -24,7 +38,7 @@ export default function LandingPage() {
   }, [])
 
   const handleAuthenticatedAction = () => {
-    if (typeof window === 'undefined') return
+    if (typeof window === "undefined") return
 
     if (isAuthenticated === null) {
       const token = localStorage.getItem("authToken")
@@ -48,8 +62,156 @@ export default function LandingPage() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
+      element.scrollIntoView({ behavior: "smooth" })
     }
+  }
+
+  const TreatmentCarousel = () => {
+    const [currentSlide, setCurrentSlide] = useState(0)
+
+    const treatments = [
+      {
+        image: "/abhyanga.png",
+        title: "Abhyanga (Full Body Oil Massage)",
+        description:
+          "Traditional full-body massage with warm herbal oils that deeply nourishes tissues and promotes circulation for complete rejuvenation.",
+      },
+      {
+        image: "/shirodhara.jpg",
+        title: "Shirodhara (Oil Pouring Therapy)",
+        description:
+          "Continuous stream of warm oil poured on the forehead to calm the nervous system and achieve deep mental relaxation.",
+      },
+      {
+        image: "/swedana.png",
+        title: "Swedana (Herbal Steam Bath)",
+        description:
+          "Therapeutic steam treatment with medicinal herbs that opens pores, eliminates toxins, and improves skin health.",
+      },
+      {
+        image: "/pizhichil.png",
+        title: "Pizhichil (Oil Bath Therapy)",
+        description:
+          "Royal treatment combining oil massage with warm medicated oil pouring for ultimate luxury and therapeutic benefits.",
+      },
+      {
+        image: "/udvarthana.png",
+        title: "Udvarthana (Herbal Powder Massage)",
+        description:
+          "Invigorating massage with herbal powders that reduces excess fat, improves skin texture, and enhances circulation.",
+      },
+      {
+        image: "/netra tarpana.png",
+        title: "Netra Tarpana (Eye Care Therapy)",
+        description:
+          "Specialized eye treatment with medicated ghee that strengthens vision, reduces eye strain, and prevents eye disorders.",
+      },
+      {
+        image: "/karna purana.png",
+        title: "Karna Purana (Ear Oil Therapy)",
+        description:
+          "Therapeutic ear treatment with warm medicated oils that improves hearing, reduces ear problems, and calms the mind.",
+      },
+      {
+        image: "/shiro abhyanga.png",
+        title: "Shiro Abhyanga (Head Massage)",
+        description:
+          "Specialized head and scalp massage that promotes hair growth, reduces stress, and improves mental clarity and focus.",
+      },
+      {
+        image: "/padabhyanga.png",
+        title: "Padabhyanga (Foot Massage)",
+        description:
+          "Therapeutic foot massage that stimulates vital points, improves circulation, and provides deep relaxation throughout the body.",
+      },
+      {
+        image: "/marma therapy .png",
+        title: "Marma Therapy (Energy Point Healing)",
+        description:
+          "Ancient healing technique targeting vital energy points to restore balance, enhance vitality, and promote natural healing.",
+      },
+    ]
+
+    const nextSlide = () => {
+      setCurrentSlide((prev) => (prev + 1) % treatments.length)
+    }
+
+    const prevSlide = () => {
+      setCurrentSlide((prev) => (prev - 1 + treatments.length) % treatments.length)
+    }
+
+    const goToSlide = (index: number) => {
+      setCurrentSlide(index)
+    }
+
+    // Auto-slide functionality
+    useEffect(() => {
+      const interval = setInterval(nextSlide, 5000) // Auto-slide every 5 seconds
+      return () => clearInterval(interval)
+    }, [])
+
+    return (
+      <div className="relative max-w-4xl mx-auto">
+        {/* Carousel Container */}
+        <div className="relative overflow-hidden rounded-lg">
+          <div
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+          >
+            {treatments.map((treatment, index) => (
+              <div key={index} className="w-full flex-shrink-0">
+                <Card className="mx-2 overflow-hidden hover:shadow-2xl transition-all duration-300">
+                  <div className="relative h-64 sm:h-80">
+                    <Image
+                      src={treatment.image || "/placeholder.svg"}
+                      alt={treatment.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-green-900 text-xl font-bold">{treatment.title}</CardTitle>
+                    <CardDescription className="text-green-700 leading-relaxed">
+                      {treatment.description}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Navigation Arrows */}
+        <button
+          onClick={prevSlide}
+          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-green-600 rounded-full p-2 shadow-lg transition-all duration-200 z-10"
+          aria-label="Previous treatment"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+
+        <button
+          onClick={nextSlide}
+          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-green-600 rounded-full p-2 shadow-lg transition-all duration-200 z-10"
+          aria-label="Next treatment"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+
+        {/* Dots Indicator */}
+        <div className="flex justify-center mt-6 space-x-2">
+          {treatments.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-3 h-3 rounded-full transition-all duration-200 ${index === currentSlide ? "bg-green-600 scale-110" : "bg-green-300 hover:bg-green-400"
+                }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -66,7 +228,7 @@ export default function LandingPage() {
             </div>
             <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
               <button
-                onClick={() => scrollToSection('services')}
+                onClick={() => scrollToSection("services")}
                 className="text-green-700 hover:text-green-800 transition-colors font-medium"
               >
                 Services
@@ -79,13 +241,13 @@ export default function LandingPage() {
                 About Ayurveda
               </Button>
               <button
-                onClick={() => scrollToSection('testimonials')}
+                onClick={() => scrollToSection("testimonials")}
                 className="text-green-700 hover:text-green-800 transition-colors font-medium"
               >
                 Testimonials
               </button>
               <button
-                onClick={() => scrollToSection('contact')}
+                onClick={() => scrollToSection("contact")}
                 className="text-green-700 hover:text-green-800 transition-colors font-medium"
               >
                 Contact
@@ -179,61 +341,68 @@ export default function LandingPage() {
               {
                 icon: Brain,
                 title: "AI-Powered Recommendations",
-                description: "Get personalized treatment plans based on your unique Prakriti (constitution) and current health goals through advanced AI analysis",
+                description:
+                  "Get personalized treatment plans based on your unique Prakriti (constitution) and current health goals through advanced AI analysis",
                 bgColor: "from-white to-green-50",
                 iconBg: "bg-green-100",
-                iconColor: "text-green-600"
+                iconColor: "text-green-600",
               },
               {
                 icon: Users,
                 title: "Expert Practitioners",
-                description: "Connect with certified Ayurvedic doctors and experienced Panchakarma therapists with decades of traditional training",
+                description:
+                  "Connect with certified Ayurvedic doctors and experienced Panchakarma therapists with decades of traditional training",
                 bgColor: "from-white to-amber-50",
                 iconBg: "bg-amber-100",
-                iconColor: "text-amber-600"
+                iconColor: "text-amber-600",
               },
               {
                 icon: Calendar,
                 title: "Smart Scheduling",
-                description: "Book appointments with real-time availability, intelligent reminders, and seamless rescheduling options",
+                description:
+                  "Book appointments with real-time availability, intelligent reminders, and seamless rescheduling options",
                 bgColor: "from-white to-orange-50",
                 iconBg: "bg-orange-100",
-                iconColor: "text-orange-600"
+                iconColor: "text-orange-600",
               },
               {
                 icon: Heart,
                 title: "Progress Tracking",
-                description: "Monitor your wellness journey with detailed analytics, daily assessments, and comprehensive health insights",
+                description:
+                  "Monitor your wellness journey with detailed analytics, daily assessments, and comprehensive health insights",
                 bgColor: "from-white to-red-50",
                 iconBg: "bg-red-100",
-                iconColor: "text-red-600"
+                iconColor: "text-red-600",
               },
               {
                 icon: Shield,
                 title: "Secure & Private",
-                description: "Your health data is protected with enterprise-grade security and complete privacy compliance",
+                description:
+                  "Your health data is protected with enterprise-grade security and complete privacy compliance",
                 bgColor: "from-white to-blue-50",
                 iconBg: "bg-blue-100",
-                iconColor: "text-blue-600"
+                iconColor: "text-blue-600",
               },
               {
                 icon: Leaf,
                 title: "Holistic Approach",
-                description: "Complete wellness solutions including personalized diet plans, lifestyle guidance, and comprehensive treatment protocols",
+                description:
+                  "Complete wellness solutions including personalized diet plans, lifestyle guidance, and comprehensive treatment protocols",
                 bgColor: "from-white to-green-50",
                 iconBg: "bg-green-100",
-                iconColor: "text-green-600"
-              }
+                iconColor: "text-green-600",
+              },
             ].map((feature, index) => (
-              <Card key={index} className={`border-green-200 hover:shadow-2xl transition-all duration-300 bg-gradient-to-br ${feature.bgColor} h-full`}>
+              <Card
+                key={index}
+                className={`border-green-200 hover:shadow-2xl transition-all duration-300 bg-gradient-to-br ${feature.bgColor} h-full`}
+              >
                 <CardHeader className="text-center">
                   <div className={`mx-auto mb-4 p-3 ${feature.iconBg} rounded-full w-fit`}>
                     <feature.icon className={`h-8 w-8 ${feature.iconColor}`} />
                   </div>
                   <CardTitle className="text-green-900 text-xl">{feature.title}</CardTitle>
-                  <CardDescription className="text-green-700 leading-relaxed">
-                    {feature.description}
-                  </CardDescription>
+                  <CardDescription className="text-green-700 leading-relaxed">{feature.description}</CardDescription>
                 </CardHeader>
               </Card>
             ))}
@@ -251,54 +420,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {[
-              {
-                image: "/shirodhara-ayurveda-treatment-oil-pouring-on-foreh.jpg",
-                title: "🌊 Shirodhara Package",
-                description: "Deep relaxation therapy with continuous oil pouring for stress relief and mental clarity",
-                price: "₹15,000",
-                alt: "Shirodhara Treatment"
-              },
-              {
-                image: "/abhyanga-ayurveda-full-body-massage-with-herbal-oi.jpg",
-                title: "💆‍♀️ Abhyanga Package",
-                description: "Full-body therapeutic massage with warm herbal oils for detoxification and rejuvenation",
-                price: "₹25,000",
-                alt: "Abhyanga Treatment"
-              },
-              {
-                image: "/panchakarma-complete-detox-treatment-ayurveda-herb.jpg",
-                title: "🌿 Complete Panchakarma",
-                description: "Comprehensive 21-day detoxification and rejuvenation program for complete wellness",
-                price: "₹75,000",
-                alt: "Complete Panchakarma"
-              }
-            ].map((treatment, index) => (
-              <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-300">
-                <div className="relative h-48">
-                  <Image
-                    src={treatment.image}
-                    alt={treatment.alt}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-green-900">{treatment.title}</CardTitle>
-                  <CardDescription className="text-green-700">
-                    {treatment.description}
-                  </CardDescription>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-2xl font-bold text-green-600">{treatment.price}</span>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleAuthenticatedAction}>
-                      Book Now
-                    </Button>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+          <TreatmentCarousel />
         </div>
       </section>
 
@@ -322,7 +444,8 @@ export default function LandingPage() {
                 borderColor: "border-green-200",
                 avatarBg: "bg-green-200",
                 avatarText: "text-green-700",
-                testimonial: "The AI recommendations were spot-on! My chronic stress and insomnia improved dramatically after the Shirodhara treatment. The doctors were incredibly knowledgeable and caring."
+                testimonial:
+                  "The AI recommendations were spot-on! My chronic stress and insomnia improved dramatically after the Shirodhara treatment. The doctors were incredibly knowledgeable and caring.",
               },
               {
                 name: "Rajesh Kumar",
@@ -332,7 +455,8 @@ export default function LandingPage() {
                 borderColor: "border-amber-200",
                 avatarBg: "bg-amber-200",
                 avatarText: "text-amber-700",
-                testimonial: "Complete Panchakarma changed my life! Lost 15kg, improved digestion, and feel 10 years younger. The progress tracking helped me stay motivated throughout the journey."
+                testimonial:
+                  "Complete Panchakarma changed my life! Lost 15kg, improved digestion, and feel 10 years younger. The progress tracking helped me stay motivated throughout the journey.",
               },
               {
                 name: "Ananya Singh",
@@ -342,10 +466,14 @@ export default function LandingPage() {
                 borderColor: "border-orange-200",
                 avatarBg: "bg-orange-200",
                 avatarText: "text-orange-700",
-                testimonial: "As a college student, I was skeptical about Ayurveda. But AyurSutra's modern approach and the convenience of online booking made it perfect for my busy schedule. Highly recommend!"
-              }
+                testimonial:
+                  "As a college student, I was skeptical about Ayurveda. But AyurSutra's modern approach and the convenience of online booking made it perfect for my busy schedule. Highly recommend!",
+              },
             ].map((testimonial, index) => (
-              <Card key={index} className={`bg-gradient-to-br ${testimonial.bgColor} ${testimonial.borderColor} h-full`}>
+              <Card
+                key={index}
+                className={`bg-gradient-to-br ${testimonial.bgColor} ${testimonial.borderColor} h-full`}
+              >
                 <CardHeader>
                   <div className="flex items-center mb-4">
                     <div className="flex text-yellow-400">
@@ -358,7 +486,9 @@ export default function LandingPage() {
                     &quot;{testimonial.testimonial}&quot;
                   </CardDescription>
                   <div className="mt-4 flex items-center">
-                    <div className={`w-12 h-12 ${testimonial.avatarBg} rounded-full flex items-center justify-center mr-3`}>
+                    <div
+                      className={`w-12 h-12 ${testimonial.avatarBg} rounded-full flex items-center justify-center mr-3`}
+                    >
                       <span className={`${testimonial.avatarText} font-semibold`}>{testimonial.initials}</span>
                     </div>
                     <div>
@@ -381,12 +511,10 @@ export default function LandingPage() {
               { number: "5000+", label: "Happy Patients Healed" },
               { number: "50+", label: "Expert Practitioners" },
               { number: "15+", label: "Treatment Centers" },
-              { number: "98%", label: "Success Rate" }
+              { number: "98%", label: "Success Rate" },
             ].map((stat, index) => (
               <div key={index}>
-                <div className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
-                  {stat.number}
-                </div>
+                <div className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">{stat.number}</div>
                 <div className="text-green-100 text-sm sm:text-base md:text-lg">{stat.label}</div>
               </div>
             ))}
@@ -397,7 +525,9 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-amber-100 via-green-100 to-orange-100">
         <div className="container mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-green-900 mb-6">Ready to Begin Your Healing Journey?</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-green-900 mb-6">
+            Ready to Begin Your Healing Journey?
+          </h2>
           <p className="text-lg sm:text-xl text-green-700 mb-10 max-w-3xl mx-auto leading-relaxed">
             Join thousands who have transformed their health with personalized Ayurvedic care. Start your wellness
             journey today!
@@ -465,7 +595,10 @@ export default function LandingPage() {
                 <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/help")}>
                   Help Center
                 </li>
-                <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/privacy")}>
+                <li
+                  className="hover:text-white transition-colors cursor-pointer"
+                  onClick={() => router.push("/privacy")}
+                >
                   Privacy Policy
                 </li>
                 <li className="hover:text-white transition-colors cursor-pointer" onClick={() => router.push("/terms")}>
