@@ -204,8 +204,9 @@ export default function LandingPage() {
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-200 ${index === currentSlide ? "bg-green-600 scale-110" : "bg-green-300 hover:bg-green-400"
-                }`}
+              className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                index === currentSlide ? "bg-green-600 scale-110" : "bg-green-300 hover:bg-green-400"
+              }`}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}
@@ -575,8 +576,8 @@ export default function LandingPage() {
               <h3 className="font-semibold mb-6 text-green-300 text-lg">Services</h3>
               <ul className="space-y-3 text-green-200">
                 <li>🌊 Panchakarma Treatments</li>
-                <li>👨‍⚕️ Expert Consultation</li>
-                <li>🧘‍♀️ Wellness Programs</li>
+                <li>👨‍⚕ Expert Consultation</li>
+                <li>🧘‍♀ Wellness Programs</li>
                 <li>🥗 Personalized Diet Planning</li>
               </ul>
             </div>
@@ -617,7 +618,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-green-800 mt-12 pt-8 text-center text-green-300">
-            <p>&copy; 2024 AyurSutra. All rights reserved. Made with 💚 for your wellness journey.</p>
+            <p>&copy; 2025 AyurSutra. All rights reserved. Made with 💚 for your wellness journey.</p>
           </div>
         </div>
       </footer>
