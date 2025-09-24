@@ -1,5 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+// ✅ Ensure route is always dynamic (fix for Vercel)
+export const dynamic = "force-dynamic"
+
 // Mock analytics data
 const clinicAnalytics = {
   overview: {
@@ -84,7 +87,6 @@ export async function GET(request: NextRequest) {
 
     // Mock filtering by center
     if (centerId) {
-      // Adjust data for specific center
       analyticsData = {
         ...clinicAnalytics,
         overview: {
