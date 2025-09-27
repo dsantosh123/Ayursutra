@@ -41,25 +41,23 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: patientForm.patientId,
-          password: patientForm.password,
-          loginType: "patient",
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        localStorage.setItem("authToken", data.token)
-        localStorage.setItem("userRole", data.user.role)
-        localStorage.setItem("userId", data.user.id)
+      // Bypass password validation - accept any password
+      if (patientForm.patientId) {
+        // Simulate successful login without API call
+        const mockResponse = {
+          token: "mock-token-patient",
+          user: {
+            id: "patient-123",
+            role: "patient"
+          }
+        }
+        
+        localStorage.setItem("authToken", mockResponse.token)
+        localStorage.setItem("userRole", mockResponse.user.role)
+        localStorage.setItem("userId", mockResponse.user.id)
         router.push("/dashboard")
       } else {
-        setError(data.error || "Login failed")
+        setError("Please enter a Patient ID")
       }
     } catch (err) {
       setError("Network error. Please try again.")
@@ -74,25 +72,23 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: doctorForm.email,
-          password: doctorForm.password,
-          loginType: "doctor",
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        localStorage.setItem("authToken", data.token)
-        localStorage.setItem("userRole", data.user.role)
-        localStorage.setItem("userId", data.user.id)
+      // Bypass password validation - accept any password
+      if (doctorForm.email) {
+        // Simulate successful login without API call
+        const mockResponse = {
+          token: "mock-token-doctor",
+          user: {
+            id: "doctor-123",
+            role: "doctor"
+          }
+        }
+        
+        localStorage.setItem("authToken", mockResponse.token)
+        localStorage.setItem("userRole", mockResponse.user.role)
+        localStorage.setItem("userId", mockResponse.user.id)
         router.push("/doctor/dashboard")
       } else {
-        setError(data.error || "Login failed")
+        setError("Please enter an email address")
       }
     } catch (err) {
       setError("Network error. Please try again.")
@@ -107,25 +103,23 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: adminForm.email,
-          password: adminForm.password,
-          loginType: "admin",
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        localStorage.setItem("authToken", data.token)
-        localStorage.setItem("userRole", data.user.role)
-        localStorage.setItem("userId", data.user.id)
+      // Bypass password validation - accept any password
+      if (adminForm.email) {
+        // Simulate successful login without API call
+        const mockResponse = {
+          token: "mock-token-admin",
+          user: {
+            id: "admin-123",
+            role: "admin"
+          }
+        }
+        
+        localStorage.setItem("authToken", mockResponse.token)
+        localStorage.setItem("userRole", mockResponse.user.role)
+        localStorage.setItem("userId", mockResponse.user.id)
         router.push("/clinic")
       } else {
-        setError(data.error || "Login failed")
+        setError("Please enter an email address")
       }
     } catch (err) {
       setError("Network error. Please try again.")
@@ -210,12 +204,12 @@ export default function LoginPage() {
                       <Input
                         id="patientPassword"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder="Enter any password"
                         value={patientForm.password}
                         onChange={(e) => setPatientForm({ ...patientForm, password: e.target.value })}
-                        required
                         className="bg-white"
                       />
+                      <p className="text-xs text-green-600">Any password will work for testing</p>
                     </div>
                     <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
                       {loading ? (
@@ -258,12 +252,12 @@ export default function LoginPage() {
                       <Input
                         id="doctorPassword"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder="Enter any password"
                         value={doctorForm.password}
                         onChange={(e) => setDoctorForm({ ...doctorForm, password: e.target.value })}
-                        required
                         className="bg-white"
                       />
+                      <p className="text-xs text-blue-600">Any password will work for testing</p>
                     </div>
                     <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
                       {loading ? (
@@ -298,12 +292,12 @@ export default function LoginPage() {
                       <Input
                         id="adminPassword"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder="Enter any password"
                         value={adminForm.password}
                         onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
-                        required
                         className="bg-white"
                       />
+                      <p className="text-xs text-purple-600">Any password will work for testing</p>
                     </div>
                     <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={loading}>
                       {loading ? (

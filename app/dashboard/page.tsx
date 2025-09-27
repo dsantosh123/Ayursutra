@@ -95,8 +95,8 @@ export default function PatientDashboard() {
   }
 
   const handleBookNewAppointment = () => {
-    router.push("/booking")
-  }
+  router.push("/symptom/healthassessment")
+}
 
   const handleContactDoctor = () => {
     // Get current doctor info from appointments or localStorage

@@ -38,7 +38,7 @@ export default function AboutAyurvedaPage() {
       element: "Fire + Water",
       characteristics: "Metabolism, Intelligence, Transformation",
       color: "from-red-400 to-orange-400",
-      icon: "🔥",
+      img : "C:\Users\sdona\OneDrive\Desktop\AyuSutra\Ayursutra\public\herbal_leaf-removebg-preview.png",
       description: "Controls digestion, metabolism, body temperature, and mental clarity",
     },
     {
@@ -56,7 +56,7 @@ export default function AboutAyurvedaPage() {
       name: "Vamana",
       description: "Therapeutic vomiting to eliminate excess Kapha dosha",
       benefits: "Respiratory disorders, skin diseases, obesity",
-      icon: "🌿",
+      image: "/herbal_leaf-removebg-preview.png",
     },
     {
       name: "Virechana",
