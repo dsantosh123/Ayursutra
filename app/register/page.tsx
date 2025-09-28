@@ -44,8 +44,7 @@ const steps = [
   { id: 1, title: "Personal Information", icon: User },
   { id: 2, title: "Contact & OTP", icon: Phone },
   { id: 3, title: "Patient ID", icon: IdCard },
-  { id: 4, title: "Password Setup", icon: Lock },
-  { id: 5, title: "Success", icon: CheckCircle },
+  { id: 4, title: "Success", icon: CheckCircle },
 ]
 
 export default function PatientRegistration() {
@@ -65,16 +64,16 @@ export default function PatientRegistration() {
   const [phoneOtpVerified, setPhoneOtpVerified] = useState(false)
   const [emailOtpVerified, setEmailOtpVerified] = useState(false)
 
-  const [patientData, setPatientData] = useState<PatientData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    dateOfBirth: "",
-    gender: "",
-    password: "",
-    confirmPassword: "",
-  })
+const [patientData, setPatientData] = useState({
+  firstName: "",
+  lastName: "",
+  dateOfBirth: "",
+  gender: "",
+  email: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+});
 
   const updatePatientData = (field: keyof PatientData, value: any) => {
     setPatientData((prev) => ({ ...prev, [field]: value }))
@@ -83,66 +82,88 @@ export default function PatientRegistration() {
     }
   }
 
-  const validateCurrentStep = (): boolean => {
-    const errors: string[] = []
+const validateCurrentStep = () => {
+  const errors: string[] = []
 
-    if (currentStep === 1) {
-      if (!patientData.firstName.trim()) errors.push("First name is required")
-      if (!patientData.lastName.trim()) errors.push("Last name is required")
-      if (!patientData.dateOfBirth) errors.push("Date of birth is required")
-      if (!patientData.gender) errors.push("Gender is required")
+  if (currentStep === 1) {
+    if (!patientData.firstName.trim()) errors.push("First name is required")
+    if (!patientData.lastName.trim()) errors.push("Last name is required")
+    if (!patientData.dateOfBirth) errors.push("Date of Birth is required")
+    if (!patientData.gender) errors.push("Gender is required")
+
+    // ✅ Password validation here (since password is in Step 1 now)
+    if (!patientData.password || !patientData.password.trim()) {
+      errors.push("Password is required")
+    } else if (patientData.password.length < 6) {
+      errors.push("Password must be at least 6 characters long")
     }
+  }
 
-    if (currentStep === 2) {
-      if (!patientData.phone.trim()) errors.push("Phone number is required")
-      if (!patientData.email.trim()) errors.push("Email address is required")
+  if (currentStep === 2) {
+    if (!patientData.phone.trim()) errors.push("Phone number is required")
+    if (!patientData.email.trim()) errors.push("Email is required")
+  }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (patientData.email && !emailRegex.test(patientData.email)) {
-        errors.push("Please enter a valid email address")
-      }
-
-      if (!phoneOtpVerified) errors.push("Please verify your phone number with OTP")
-      if (!emailOtpVerified) errors.push("Please verify your email address with OTP")
-    }
-
-    if (currentStep === 4) {
-      if (!patientData.password.trim()) errors.push("Password is required")
-      if (!patientData.confirmPassword.trim()) errors.push("Please confirm your password")
-      if (patientData.password !== patientData.confirmPassword) {
-        errors.push("Passwords do not match")
-      }
-      if (patientData.password.length < 6) {
-        errors.push("Password must be at least 6 characters long")
-      }
-    }
-
+  if (errors.length > 0) {
     setValidationErrors(errors)
-    return errors.length === 0
+    return false
   }
 
-  const nextStep = () => {
-    if (!validateCurrentStep()) {
-      return
-    }
+  setValidationErrors([])
+  return true
+}
+const nextStep = async () => {
+  if (!validateCurrentStep()) return;
 
-    if (!completedSteps.includes(currentStep)) {
-      setCompletedSteps((prev) => [...prev, currentStep])
-    }
-
-    if (currentStep === 3) {
-      const patientId = generatePatientId()
-      setGeneratedPatientId(patientId)
-      console.log(`Patient ID ${patientId} sent to email: ${patientData.email}`)
-    }
-
-    if (currentStep === 4) {
-      completeRegistration()
-      return
-    }
-
-    setCurrentStep(currentStep + 1)
+  // Password check
+  if (currentStep === 1 && patientData.password !== patientData.confirmPassword) {
+    alert("Passwords do not match");
+    return;
   }
+
+  if (!completedSteps.includes(currentStep)) {
+    setCompletedSteps((prev) => [...prev, currentStep]);
+  }
+
+  // ✅ When moving from Step 2 → Step 3, call backend
+  if (currentStep === 2) {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patientData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setGeneratedPatientId(data.patientId); // ✅ backend ID ready for Step 3
+        setRegistrationComplete(true);
+      } else {
+        setValidationErrors([data.error || "Something went wrong."]);
+        return;
+      }
+    } catch (err) {
+      console.error("❌ Registration error:", err);
+      setValidationErrors(["Internal server error"]);
+      return;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // ✅ Step 4 is now just a success page
+  if (currentStep === 3) {
+    setCurrentStep(4);
+    return;
+  }
+
+  setCurrentStep(currentStep + 1);
+};
+
+
+
 
   const prevStep = () => {
     if (currentStep > 1) {
@@ -220,27 +241,55 @@ export default function PatientRegistration() {
     }
     setIsLoading(false)
   }
+const completeRegistration = async () => {
+  setIsLoading(true);
 
-  const completeRegistration = async () => {
-    if (!validateCurrentStep()) {
-      return
+  try {
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        firstName: patientData.firstName,
+        lastName: patientData.lastName,
+        email: patientData.email,
+        phone: patientData.phone,
+        dateOfBirth: patientData.dateOfBirth,
+        gender: patientData.gender,
+        password: patientData.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log("✅ Registered successfully:", data);
+
+      // ✅ First set the patientId
+      setGeneratedPatientId(data.patientId);
+
+      // ✅ THEN move to Step 3 after ID is ready
+      setTimeout(() => {
+        setCurrentStep(3);
+      }, 0);
+
+      setRegistrationComplete(true);
+      setValidationErrors([]);
+    } else {
+      console.error("❌ Registration failed:", data.error);
+      setValidationErrors([data.error || "Something went wrong."]);
     }
-
-    setIsLoading(true)
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      setRegistrationComplete(true)
-      setCurrentStep(5)
-      setIsLoading(false)
-    } catch (error) {
-      console.error("Registration error:", error)
-      setIsLoading(false)
-    }
+  } catch (error) {
+    console.error("❌ Registration error:", error);
+    setValidationErrors(["Internal server error. Please try again later."]);
+  } finally {
+    setIsLoading(false);
   }
+};
 
-  const progress = (currentStep / 5) * 100
+
+  const progress = (currentStep / 4) * 100
 
   const navigateToStep = (stepId: number) => {
     if (
@@ -358,84 +407,127 @@ export default function PatientRegistration() {
           <Card className="border-green-200 shadow-2xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-green-50 to-amber-50 border-b border-green-100">
               <CardTitle className="text-2xl text-green-900 flex items-center gap-3">
-                {React.createElement(steps[currentStep - 1].icon, {
-                  className: "h-6 w-6 text-green-600",
-                })}
-                {steps[currentStep - 1].title}
-              </CardTitle>
+  {steps[currentStep - 1] && (
+    <>
+      {React.createElement(steps[currentStep - 1].icon, {
+        className: "h-6 w-6 text-green-600",
+      })}
+      {steps[currentStep - 1].title}
+    </>
+  )}
+</CardTitle>
+
               <CardDescription className="text-green-700 text-base">
                 {currentStep === 1 && "Please provide your basic information to get started"}
-                {currentStep === 2 && "Enter your contact details and verify both phone and email with OTP"}
-                {currentStep === 3 && "Your unique Patient ID has been generated"}
-                {currentStep === 4 && "Create a secure password for your account"}
-                {currentStep === 5 && "Your registration is complete!"}
+{currentStep === 2 && "Enter your contact details and verify both phone and email with OTP"}
+{currentStep === 3 && "Your unique Patient ID has been generated"}
+{currentStep === 4 && "Your registration is complete!"}
+
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-8">
-              {currentStep === 1 && (
-                <motion.div
-                  className="grid md:grid-cols-2 gap-6"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName" className="text-green-800 font-medium">
-                      First Name *
-                    </Label>
-                    <Input
-                      id="firstName"
-                      value={patientData.firstName}
-                      onChange={(e) => updatePatientData("firstName", e.target.value)}
-                      placeholder="Enter your first name"
-                      className="border-green-200 focus:border-green-500 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-green-800 font-medium">
-                      Last Name *
-                    </Label>
-                    <Input
-                      id="lastName"
-                      value={patientData.lastName}
-                      onChange={(e) => updatePatientData("lastName", e.target.value)}
-                      placeholder="Enter your last name"
-                      className="border-green-200 focus:border-green-500 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth" className="text-green-800 font-medium">
-                      Date of Birth *
-                    </Label>
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={patientData.dateOfBirth}
-                      onChange={(e) => updatePatientData("dateOfBirth", e.target.value)}
-                      className="border-green-200 focus:border-green-500 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender" className="text-green-800 font-medium">
-                      Gender *
-                    </Label>
-                    <Select value={patientData.gender} onValueChange={(value) => updatePatientData("gender", value)}>
-                      <SelectTrigger className="border-green-200 focus:border-green-500 focus:ring-green-500">
-                        <SelectValue placeholder="Select your gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </motion.div>
-              )}
+               {currentStep === 1 && (
+    <motion.div
+      className="grid md:grid-cols-2 gap-6"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="space-y-2">
+        <Label htmlFor="firstName" className="text-green-800 font-medium">
+          First Name *
+        </Label>
+        <Input
+          id="firstName"
+          value={patientData.firstName}
+          onChange={(e) => updatePatientData("firstName", e.target.value)}
+          placeholder="Enter your first name"
+          className="border-green-200 focus:border-green-500 focus:ring-green-500"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="lastName" className="text-green-800 font-medium">
+          Last Name *
+        </Label>
+        <Input
+          id="lastName"
+          value={patientData.lastName}
+          onChange={(e) => updatePatientData("lastName", e.target.value)}
+          placeholder="Enter your last name"
+          className="border-green-200 focus:border-green-500 focus:ring-green-500"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="dateOfBirth" className="text-green-800 font-medium">
+          Date of Birth *
+        </Label>
+        <Input
+          id="dateOfBirth"
+          type="date"
+          value={patientData.dateOfBirth}
+          onChange={(e) => updatePatientData("dateOfBirth", e.target.value)}
+          className="border-green-200 focus:border-green-500 focus:ring-green-500"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="gender" className="text-green-800 font-medium">
+          Gender *
+        </Label>
+        <Select
+          value={patientData.gender}
+          onValueChange={(value) => updatePatientData("gender", value)}
+        >
+          <SelectTrigger className="border-green-200 focus:border-green-500 focus:ring-green-500">
+            <SelectValue placeholder="Select your gender" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="male">Male</SelectItem>
+            <SelectItem value="female">Female</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
+            <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* 🔹 Password Field */}
+      <div className="space-y-2">
+        <Label htmlFor="password" className="text-green-800 font-medium">
+          Password *
+        </Label>
+        <Input
+          id="password"
+          type="password"
+          value={patientData.password}
+          onChange={(e) => updatePatientData("password", e.target.value)}
+          placeholder="Enter password"
+          className="border-green-200 focus:border-green-500 focus:ring-green-500"
+          required
+        />
+      </div>
+
+      {/* 🔹 Confirm Password Field */}
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword" className="text-green-800 font-medium">
+          Confirm Password *
+        </Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          value={patientData.confirmPassword}
+          onChange={(e) => updatePatientData("confirmPassword", e.target.value)}
+          placeholder="Confirm password"
+          className="border-green-200 focus:border-green-500 focus:ring-green-500"
+          required
+        />
+      </div>
+    </motion.div>
+  )}
 
               {currentStep === 2 && (
                 <motion.div
@@ -560,77 +652,11 @@ export default function PatientRegistration() {
                 </motion.div>
               )}
 
-              {currentStep === 3 && (
-                <motion.div
-                  className="text-center space-y-6"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <div className="space-y-4">
-                    <div className="text-6xl">🆔</div>
-                    <h3 className="text-2xl font-bold text-green-900">Your Patient ID</h3>
-                    <div className="p-6 bg-green-50 rounded-lg border-2 border-green-200">
-                      <p className="text-3xl font-mono font-bold text-green-800 tracking-wider">
-                        {generatedPatientId || generatePatientId()}
-                      </p>
-                    </div>
-                    <p className="text-green-700 max-w-md mx-auto">
-                      Your unique Patient ID has been generated. This ID will be sent to your email address for future
-                      reference.
-                    </p>
-                  </div>
-                </motion.div>
-              )}
+          {currentStep === 3 && ( <motion.div className="text-center space-y-6" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} > <div className="space-y-4"> <div className="text-6xl">🆔</div> <h3 className="text-2xl font-bold text-green-900">Your Patient ID</h3> <div className="p-6 bg-green-50 rounded-lg border-2 border-green-200"> <p className="text-3xl font-mono font-bold text-green-800 tracking-wider"> {generatedPatientId} </p> </div> <p className="text-green-700 max-w-md mx-auto"> Your unique Patient ID has been generated. This ID will be sent to your email address for future reference. </p> </div> </motion.div> )}
+
+            
 
               {currentStep === 4 && (
-                <motion.div
-                  className="space-y-6"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-green-800 font-medium">
-                        Password *
-                      </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={patientData.password}
-                        onChange={(e) => updatePatientData("password", e.target.value)}
-                        placeholder="Enter your password"
-                        className="border-green-200 focus:border-green-500 focus:ring-green-500"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-green-800 font-medium">
-                        Confirm Password *
-                      </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={patientData.confirmPassword}
-                        onChange={(e) => updatePatientData("confirmPassword", e.target.value)}
-                        placeholder="Confirm your password"
-                        className="border-green-200 focus:border-green-500 focus:ring-green-500"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <h4 className="text-amber-800 font-medium mb-2">Password Requirements:</h4>
-                    <ul className="text-amber-700 text-sm space-y-1">
-                      <li>• At least 6 characters long</li>
-                      <li>• Both passwords must match</li>
-                    </ul>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentStep === 5 && (
                 <motion.div
                   className="text-center space-y-8"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -688,7 +714,7 @@ export default function PatientRegistration() {
                 </motion.div>
               )}
 
-              {currentStep < 5 && (
+              {currentStep < 4 && (
                 <div className="flex justify-between pt-8 border-t border-green-100">
                   <Button
                     variant="outline"
@@ -704,11 +730,12 @@ export default function PatientRegistration() {
                     disabled={isLoading}
                     className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    {isLoading ? "Processing..." : currentStep === 4 ? "Complete Registration" : "Next Step"}
+                    {"Next Step"}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}
+              
             </CardContent>
           </Card>
         </motion.div>
